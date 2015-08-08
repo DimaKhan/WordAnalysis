@@ -1,0 +1,6 @@
+c:\users\admin\documents\visual studio 2013\Projects\MorfologAnalysis\MorfologAnalysis\bin\Debug\MorfologAnalysis.exe.config
+c:\users\admin\documents\visual studio 2013\Projects\MorfologAnalysis\MorfologAnalysis\bin\Debug\MorfologAnalysis.exe
+c:\users\admin\documents\visual studio 2013\Projects\MorfologAnalysis\MorfologAnalysis\bin\Debug\MorfologAnalysis.pdb
+c:\users\admin\documents\visual studio 2013\Projects\MorfologAnalysis\MorfologAnalysis\obj\Debug\MorfologAnalysis.csprojResolveAssemblyReference.cache
+c:\users\admin\documents\visual studio 2013\Projects\MorfologAnalysis\MorfologAnalysis\obj\Debug\MorfologAnalysis.exe
+c:\users\admin\documents\visual studio 2013\Projects\MorfologAnalysis\MorfologAnalysis\obj\Debug\MorfologAnalysis.pdb
