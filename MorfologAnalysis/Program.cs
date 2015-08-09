@@ -12,23 +12,23 @@ namespace MorfologAnalysis
     class Program
     {
         //Данные об окончаниях
-        struct EndWord 
+        class Suffix 
         {
-            public EndWord(string _osnova, string endWords)
+            //Неизменяемая часть слова
+            public string osnova;
+            public Hashtable suffix = new Hashtable();
+           
+            public Suffix(string _osnova, string _suffix)
             {
                 osnova = _osnova;
-                endLetters = endWords;
-                Console.WriteLine(endWords);
+                string[] suffixData = _suffix.Split(';');
+                foreach (string sd in suffixData) 
+                {
+                    //Заполняем таблицу окончаний для добавленного  слова
+                    suffix.Add(Regex.Match(sd, @"[а-яА-Я]*").Value, Regex.Replace(sd, @"^[а-яА-Я]*,", ""));
+                }
             }
-            //Неизменяемая часть слова 
-            public string osnova;
-            //Окончания
-            public string endLetters;
-            
-
-            
-
-        }
+           }
         
         //Данные о букве добавляемых слов
         class LetterData 
@@ -40,59 +40,74 @@ namespace MorfologAnalysis
             //Описание для неизменяемой части слова
             public string morfologData;
             //Списо окончаний для конечной буквы неизменяемой части слова
-            List<EndWord> endWords  = new List<EndWord>();
+            List<Suffix> suffixes  = new List<Suffix>();
             
-            public int IDEndWord;
-            public LetterData(char _letter, int _position,  Hashtable _endWordsTable = null, int _IDEndword = -1, string _morfologData = "", string _osnova = "") 
+            public LetterData(char _letter, int _position, string _osnova = "", Hashtable _suffixTable = null, int _IdSuffix = -1, string _morfologData = "") 
             {
                 letter = _letter;
                 position = _position;
                 morfologData = _morfologData;
-                if (_IDEndword != -1)
+                if (_IdSuffix != -1)
                 {
-                    endWords.Add(new EndWord(_osnova, _endWordsTable[_IDEndword].ToString()));
+                   suffixes.Add(new Suffix(_osnova, _suffixTable[_IdSuffix].ToString()));
                 }
-
-                
             }
-
         }
+        
         class WordAnalysis 
         {
+            //Правильно было бы сделать поля статическими, но у нас один объект класса
+            //Далее необходимо реализовать Singleton
             //Список хранимых букв
             List<LetterData> letters = new List<LetterData>();
+            //Хеш таблица окончаний
+            Hashtable suffixTable = new Hashtable();
 
-            //Добавляем слово
+            public WordAnalysis() 
+            {
+                //Выгрузка окончаний в хеш таблицу
+                StreamReader endData = new StreamReader(@"D:\dict\flexia.txt", Encoding.Default);
+                string str;
+                while (!endData.EndOfStream)
+                {
+                    str = endData.ReadLine();
+                    suffixTable.Add(Int32.Parse(Regex.Match(str, @"[0-9]*").Value), Regex.Replace(str, @"^[0-9]|:|\s", ""));
+                }
+            }
+
+            #region Добавление слова
+            //Добавление слова
             //Переменная _word это неизменяемая часть слова
-            public void addWord(string _word, string _morfologData, int IDEndWord, Hashtable _endWordsTable) 
+            public void addWord(string _word, string _morfologData, int IdSuffix) 
             {
                 for (int i = 0; i < _word.Length; i++) 
                 {
                     if (i == _word.Length - 1)
                     {
                         //Если буква неизменямой части последняя, тогда берём описание из первого словаря
-                        this.letters.Add(new LetterData(_word[i], i, _endWordsTable, IDEndWord, _morfologData, _word));
-                        
+                        this.letters.Add(new LetterData(_word[i], i, _word, this.suffixTable, IdSuffix, _morfologData));
                     }
                     else
                     {
                         this.letters.Add(new LetterData(_word[i], i));
                     }
                 }
-
             }
+            #endregion
+
+            #region Поиск слова
             //Поиск в словаре по входной строке
             public void findWord(string _searchWord)
             {
                 
                 for (int i = 0; i < _searchWord.Length; i++) 
                 {
-                    var tempList = letters.Where( let=> let.letter == _searchWord[i] && let.position == i);
-                    if (tempList.Any())
+                    var resLetter = letters.Where( let=> let.letter == _searchWord[i] && let.position == i);
+                    if (resLetter.Any())
                     {
-                        foreach (LetterData resultletter in tempList)
+                        foreach (LetterData let in resLetter)
                         {
-                            //Console.WriteLine(resultletter.letter.ToString() + ' ' + resultletter.position + ' ' + resultletter.morfologData + '\n');
+                            Console.WriteLine(let.letter.ToString() + ' ' + let.position + ' ' + let.morfologData + '\n');
                         }
                     }
                     else 
@@ -100,30 +115,16 @@ namespace MorfologAnalysis
                         break; 
                     }
                 }
-                
+
             }
+            #endregion
+        
         }
         static void Main(string[] args)
         {
-            //Выгрузка окончаний в хеш таблицу
-            Hashtable endWordsTable = new Hashtable();
-            StreamReader endData = new StreamReader(@"D:\dict\flexia.txt",Encoding.Default);
-
-            string str;
-            while (!endData.EndOfStream)
-            {
-                str = endData.ReadLine();
-                endWordsTable.Add(Int32.Parse(Regex.Match(str, @"[0-9]*").Value), Regex.Replace(str, @"^[0-9]|:|\s", ""));
-            }
-          
-
-            
-
             WordAnalysis wa = new WordAnalysis();
-            wa.addWord("asdf", "definition word", 2, endWordsTable);
+            wa.addWord("asdf", "definition word", 2);
             wa.findWord("asdf");
-           
-
             Console.ReadLine();
         }
     }
