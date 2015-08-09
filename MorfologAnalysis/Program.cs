@@ -26,6 +26,7 @@ namespace MorfologAnalysis
                 {
                     //Заполняем таблицу окончаний для добавленного  слова
                     suffix.Add(Regex.Match(sd, @"[а-яА-Я]*").Value, Regex.Replace(sd, @"^[а-яА-Я]*,", ""));
+                    
                 }
             }
            }
@@ -33,6 +34,8 @@ namespace MorfologAnalysis
         //Данные о букве добавляемых слов
         class LetterData 
         {
+            //Является ли буква конечной для какого либо из добавленных слов
+            public bool final;
             //Позиция буквы в добавляемом слове
             public int position;
             //Буква
@@ -42,15 +45,24 @@ namespace MorfologAnalysis
             //Списо окончаний для конечной буквы неизменяемой части слова
             List<Suffix> suffixes  = new List<Suffix>();
             
-            public LetterData(char _letter, int _position, string _osnova = "", Hashtable _suffixTable = null, int _IdSuffix = -1, string _morfologData = "") 
+            public LetterData(char _letter, int _position, bool _final = false, string _osnova = "", Hashtable _suffixTable = null, int _IdSuffix = -1, string _morfologData = "") 
             {
                 letter = _letter;
                 position = _position;
                 morfologData = _morfologData;
+                final = _final;
                 if (_IdSuffix != -1)
                 {
                    suffixes.Add(new Suffix(_osnova, _suffixTable[_IdSuffix].ToString()));
                 }
+            }
+
+            public IEnumerable checkSuffix(string _osnova, string _endWord) 
+            {
+
+                var resSuffix = this.suffixes.Where(suf => suf.osnova == _osnova && suf.suffix.ContainsKey(_endWord));
+                if (resSuffix.Any()) Console.WriteLine("Done!");
+                return resSuffix;
             }
         }
         
@@ -85,7 +97,7 @@ namespace MorfologAnalysis
                     if (i == _word.Length - 1)
                     {
                         //Если буква неизменямой части последняя, тогда берём описание из первого словаря
-                        this.letters.Add(new LetterData(_word[i], i, _word, this.suffixTable, IdSuffix, _morfologData));
+                        this.letters.Add(new LetterData(_word[i], i, true , _word, this.suffixTable, IdSuffix, _morfologData));
                     }
                     else
                     {
@@ -107,7 +119,13 @@ namespace MorfologAnalysis
                     {
                         foreach (LetterData let in resLetter)
                         {
-                            Console.WriteLine(let.letter.ToString() + ' ' + let.position + ' ' + let.morfologData + '\n');
+                            Console.WriteLine(let.letter.ToString() + ' ' + let.position + ' ' + let.morfologData + ' '+let.final+ '\n');
+                            if (let.final) 
+                            {
+                                Console.WriteLine(_searchWord.Substring(0, i + 1) + ' ' + _searchWord.Substring(i+1));
+                                //С помощью LINQ найти окончания которые равны оставшемуся слову для данной буквы
+                                let.checkSuffix(_searchWord.Substring(0, i + 1), _searchWord.Substring(i+1));
+                            }
                         }
                     }
                     else 
@@ -124,7 +142,7 @@ namespace MorfologAnalysis
         {
             WordAnalysis wa = new WordAnalysis();
             wa.addWord("asdf", "definition word", 2);
-            wa.findWord("asdf");
+            wa.findWord("asdfыть");
             Console.ReadLine();
         }
     }
