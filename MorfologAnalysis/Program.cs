@@ -16,6 +16,7 @@ namespace MorfologAnalysis
         {
             //Неизменяемая часть слова
             public string osnova;
+            //Таблица окончаний
             public Hashtable suffix = new Hashtable();
            
             public Suffix(string _osnova, string _suffix)
@@ -42,9 +43,9 @@ namespace MorfologAnalysis
         }
 
         abstract class CharData 
-        {
+        {   //Морфологический анализ неизменяемой части слова
             public string morfologData;
-
+            //id окончания из второго файла
             public int IdSuffix;
             public List<Suffix> suffixes = new List<Suffix>();
             public abstract string getSuffixData(string _endWord, string _osnova = "");
@@ -82,7 +83,7 @@ namespace MorfologAnalysis
             public bool final;
             //Позиция буквы в добавляемом слове
             public int position;
-            //Буква
+            //Буква слова
             public char letter;
  
             public LetterData(char _letter, int _position, bool _final = false, string _osnova = "", Hashtable _suffixTable = null, int _IdSuffix = -1, string _morfologData = "") 
@@ -115,8 +116,6 @@ namespace MorfologAnalysis
         
         class WordAnalysis 
         {
-            //Правильно было бы сделать поля статическими, но у нас один объект класса
-            //Далее необходимо реализовать Singleton
             //Список хранимых букв
             List<LetterData> letters = new List<LetterData>();
             //Список окнчаний без неизменяемой части
@@ -127,7 +126,7 @@ namespace MorfologAnalysis
             public WordAnalysis() 
             {
                 //Загрузка окончаний в хеш таблицу
-                StreamReader endData = new StreamReader(@"D:\dict\flexia.txt", Encoding.Default);
+                StreamReader endData = new StreamReader(@"dict\flexia.txt", Encoding.Default);
                 string str;
                 while (!endData.EndOfStream)
                 {
@@ -137,7 +136,7 @@ namespace MorfologAnalysis
                 endData.Close();
 
                 //Загрузка неизменяемых частей
-                StreamReader osnovaData = new StreamReader(@"D:\dict\word.txt", Encoding.Default);
+                StreamReader osnovaData = new StreamReader(@"dict\word.txt", Encoding.Default);
                 string[] wordDict;
                 while (!osnovaData.EndOfStream)
                 {
