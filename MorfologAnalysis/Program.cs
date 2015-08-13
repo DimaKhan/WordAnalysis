@@ -22,29 +22,46 @@ namespace MorfologAnalysis
             {
                 osnova = _osnova;
                 string[] suffixData = _suffix.Split(';');
+                string suffixKey, suffixVal;
                 foreach (string sd in suffixData) 
                 {
+                    suffixKey = Regex.Match(sd, @"[а-яА-Я]*").Value;
+                    suffixVal = Regex.Replace(sd, @"^[а-яА-Я]*,", "");
                     //Заполняем таблицу окончаний для добавленного  слова
-                    suffix.Add(Regex.Match(sd, @"[а-яА-Я]*").Value, Regex.Replace(sd, @"^[а-яА-Я]*,", ""));
+                    if (!suffix.ContainsKey(suffixKey))
+                    {
+                        suffix.Add(Regex.Match(sd, @"[а-яА-Я]*").Value, suffixVal);
+                    }
+                    else 
+                    {
+                        suffix[suffixKey] += " или " + suffixVal;
+                    }
                     
                 }
             }
         }
 
-        class OnlySuffixData 
+        abstract class CharData 
         {
-              //Описание для неизменяемой части слова
             public string morfologData;
+
             public int IdSuffix;
-            public List<Suffix> suffixes  = new List<Suffix>();
+            public List<Suffix> suffixes = new List<Suffix>();
+            public abstract string getSuffixData(string _endWord, string _osnova = "");
+        }
+
+        class OnlySuffixData :CharData
+        {
             public OnlySuffixData(Hashtable _suffixTable = null, int _IdSuffix = -1, string _morfologData = "") 
             {
                 morfologData = _morfologData;
                 IdSuffix = _IdSuffix;
-                
-                suffixes.Add(new Suffix("", _suffixTable[_IdSuffix].ToString()));
+                if (_suffixTable[_IdSuffix] != null)
+                {
+                    suffixes.Add(new Suffix("", _suffixTable[_IdSuffix].ToString()));
+                }
             }
-            public string getSuffixData(string _endWord)
+            public override string getSuffixData(string _endWord, string _osnova = "")
             {
                 var resSuffix = this.suffixes.SingleOrDefault(suf => suf.suffix.ContainsKey(_endWord));
                 if (resSuffix != null)
@@ -59,7 +76,7 @@ namespace MorfologAnalysis
         }
 
         //Данные о букве добавляемых слов
-        class LetterData 
+        class LetterData : CharData
         {
             //Является ли буква конечной для какого либо из добавленных слов
             public bool final;
@@ -67,26 +84,22 @@ namespace MorfologAnalysis
             public int position;
             //Буква
             public char letter;
-            //Описание для неизменяемой части слова
-            public string morfologData;
-            public int IdSuffix;
-            //Список окончаний для конечной буквы неизменяемой части слова
-            List<Suffix> suffixes  = new List<Suffix>();
-            
+ 
             public LetterData(char _letter, int _position, bool _final = false, string _osnova = "", Hashtable _suffixTable = null, int _IdSuffix = -1, string _morfologData = "") 
             {
+                
                 letter = _letter;
                 position = _position;
                 morfologData = _morfologData;
                 final = _final;
                 IdSuffix = _IdSuffix;
-                if (IdSuffix != -1)
+                if (IdSuffix != -1 && _suffixTable[_IdSuffix] != null)
                 {
-                   suffixes.Add(new Suffix(_osnova, _suffixTable[_IdSuffix].ToString()));
+                   this.suffixes.Add(new Suffix(_osnova, _suffixTable[_IdSuffix].ToString()));
                 }
             }
 
-            public string getSuffixData(string _osnova, string _endWord) 
+            public override string getSuffixData(string _endWord, string _osnova) 
             {
                 var resSuffix = this.suffixes.SingleOrDefault(suf => suf.osnova == _osnova && suf.suffix.ContainsKey(_endWord));
                 if (resSuffix != null)
@@ -113,7 +126,7 @@ namespace MorfologAnalysis
 
             public WordAnalysis() 
             {
-                //Выгрузка окончаний в хеш таблицу
+                //Загрузка окончаний в хеш таблицу
                 StreamReader endData = new StreamReader(@"D:\dict\flexia.txt", Encoding.Default);
                 string str;
                 while (!endData.EndOfStream)
@@ -121,6 +134,22 @@ namespace MorfologAnalysis
                     str = endData.ReadLine();
                     suffixTable.Add(Int32.Parse(Regex.Match(str, @"[0-9]*").Value), Regex.Replace(str, @"^[0-9]|:|\s", ""));
                 }
+                endData.Close();
+
+                //Загрузка неизменяемых частей
+                StreamReader osnovaData = new StreamReader(@"D:\dict\word.txt", Encoding.Default);
+                string[] wordDict;
+                while (!osnovaData.EndOfStream)
+                {
+                    str = osnovaData.ReadLine();
+                    wordDict = str.Split(':');
+                    if (wordDict.Count() == 3)
+                    {
+                        addWord(wordDict[0].Trim(' '), wordDict[1].Trim(' '), Convert.ToInt32(wordDict[2].Trim(' ')));
+                    }
+                    addWord(wordDict[0].Trim(' '), wordDict[1].Trim(' '));
+                }
+                osnovaData.Close();
             }
 
             #region Добавление слова
@@ -170,9 +199,10 @@ namespace MorfologAnalysis
                                 if (_searchWord.Substring(i + 1) != "")
                                 {
                                     //Если ещё остались буквы в слове, проверяем привязанные окончания
-                                    suffixData = let.getSuffixData(_searchWord.Substring(0, i + 1), _searchWord.Substring(i + 1));
+                                    suffixData = let.getSuffixData(_searchWord.Substring(i + 1), _searchWord.Substring(0, i + 1));
                                     if (suffixData != "")
                                     {
+                                        
                                         return resultAnalysis = let.morfologData + ' ' + suffixData;
                                     }
                                 }
@@ -208,15 +238,35 @@ namespace MorfologAnalysis
 
             }
             #endregion
-        
+
+            #region Вывод результата
+            public void stringAnalysis(string _inputStr) 
+            {
+                string strResult;
+                MatchCollection allWords = Regex.Matches(_inputStr.ToLower(), "[а-яА-Я]+");
+                foreach (Match wordInput in allWords)
+                {
+                    strResult = findWord(wordInput.Value);
+                    if (strResult != "")
+                    {
+                        Console.WriteLine(wordInput + " - " + strResult );
+                    }
+                    else
+                    {
+                        Console.WriteLine(wordInput + " - " + "слово не найдено");
+                    }
+                }
+            }
+            #endregion
         }
+
+
         static void Main(string[] args)
         {
             WordAnalysis wa = new WordAnalysis();
-            wa.addWord("asdf", "definition word", 2);
-            wa.addWord("azdf", "my word", 2);
-            wa.addWord("тест", "описание");
-            Console.WriteLine(wa.findWord("тест"));
+            string text = Console.ReadLine();
+            wa.stringAnalysis(text);
+
             Console.ReadLine();
         }
     }
