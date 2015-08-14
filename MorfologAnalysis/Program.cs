@@ -11,7 +11,6 @@ namespace MorfologAnalysis
 {
     class Program
     {
-        //Данные об окончаниях
         class Suffix 
         {
             //Неизменяемая часть слова
@@ -24,6 +23,8 @@ namespace MorfologAnalysis
                 osnova = _osnova;
                 string[] suffixData = _suffix.Split(';');
                 string suffixKey, suffixVal;
+                
+
                 foreach (string sd in suffixData) 
                 {
                     suffixKey = Regex.Match(sd, @"[а-яА-Я]*").Value;
@@ -62,6 +63,7 @@ namespace MorfologAnalysis
                     suffixes.Add(new Suffix("", _suffixTable[_IdSuffix].ToString()));
                 }
             }
+            //Получить морфологический анализ для всего слова
             public override string getSuffixData(string _endWord, string _osnova = "")
             {
                 var resSuffix = this.suffixes.SingleOrDefault(suf => suf.suffix.ContainsKey(_endWord));
@@ -99,7 +101,7 @@ namespace MorfologAnalysis
                    this.suffixes.Add(new Suffix(_osnova, _suffixTable[_IdSuffix].ToString()));
                 }
             }
-
+            //Получить морфологический анализ изменяемой части слова
             public override string getSuffixData(string _endWord, string _osnova) 
             {
                 var resSuffix = this.suffixes.SingleOrDefault(suf => suf.osnova == _osnova && suf.suffix.ContainsKey(_endWord));
@@ -126,7 +128,7 @@ namespace MorfologAnalysis
             public WordAnalysis() 
             {
                 //Загрузка окончаний в хеш таблицу
-                StreamReader endData = new StreamReader(@"dict\flexia.txt", Encoding.Default);
+                StreamReader endData = new StreamReader(@"D:\dict\flexia.txt", Encoding.Default);
                 string str;
                 while (!endData.EndOfStream)
                 {
@@ -136,7 +138,7 @@ namespace MorfologAnalysis
                 endData.Close();
 
                 //Загрузка неизменяемых частей
-                StreamReader osnovaData = new StreamReader(@"dict\word.txt", Encoding.Default);
+                StreamReader osnovaData = new StreamReader(@"D:\dict\word.txt", Encoding.Default);
                 string[] wordDict;
                 while (!osnovaData.EndOfStream)
                 {
@@ -152,7 +154,7 @@ namespace MorfologAnalysis
             }
 
             #region Добавление слова
-            //Добавление слова
+            //Добавление слова в словарь
             //Переменная _word это неизменяемая часть слова
             public void addWord(string _word, string _morfologData, int IdSuffix = -1) 
             { 
@@ -186,17 +188,17 @@ namespace MorfologAnalysis
                 string suffixData;
                 for (int i = 0; i < _searchWord.Length; i++) 
                 {
+                    //Если есть хоть одна буква с текущей позицией
                     var resLetter = letters.Where( let=> let.letter == _searchWord[i] && let.position == i);
                     if (resLetter.Any())
                     {
+                        //Перебираем все найденные буквы 
                         foreach (LetterData let in resLetter)
                         {
-                           // Console.WriteLine(let.letter.ToString() + ' ' + let.position + ' ' + let.morfologData + ' '+let.final+ '\n');
+                            //Являтеся ли буква последней для неизменяемой части слова
                             if (let.final) 
                             {
-                               // Console.WriteLine(_searchWord.Substring(0, i + 1) + ' ' + _searchWord.Substring(i+1));
-                                if (_searchWord.Substring(i + 1) != "")
-                                {
+
                                     //Если ещё остались буквы в слове, проверяем привязанные окончания
                                     suffixData = let.getSuffixData(_searchWord.Substring(i + 1), _searchWord.Substring(0, i + 1));
                                     if (suffixData != "")
@@ -204,16 +206,13 @@ namespace MorfologAnalysis
                                         
                                         return resultAnalysis = let.morfologData + ' ' + suffixData;
                                     }
-                                }
-                                else 
-                                {
+  
                                     //Если букв не осталось и слово не имеет неизменяемой части, 
                                     //то возвращаем морфологическое описание из первого документа
-                                    if (let.IdSuffix == -1)
+                                    if (let.IdSuffix == -1 && _searchWord.Substring(i + 1) == "")
                                     {
                                         return let.morfologData;
                                     }
-                                }
                             }
                         }
                     }
@@ -239,10 +238,12 @@ namespace MorfologAnalysis
             #endregion
 
             #region Вывод результата
+            //Вывод на экран результата морфологического анализа введённой строки
             public void stringAnalysis(string _inputStr) 
             {
                 string strResult;
                 MatchCollection allWords = Regex.Matches(_inputStr.ToLower(), "[а-яА-Я]+");
+                //Поочерёдно для каждого слова выполняем морфологический анализ
                 foreach (Match wordInput in allWords)
                 {
                     strResult = findWord(wordInput.Value);
