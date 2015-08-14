@@ -17,7 +17,6 @@ namespace MorfologAnalysis
             public string osnova;
             //Таблица окончаний
             public Hashtable suffix = new Hashtable();
-           
             public Suffix(string _osnova, string _suffix)
             {
                 osnova = _osnova;
@@ -182,7 +181,7 @@ namespace MorfologAnalysis
 
             #region Поиск слова
             //Поиск в словаре по входной строке
-            public string findWord(string _searchWord)
+            public string findWord(string _searchWord, bool _changeFrom, string _morfologInput = "")
             {
                 string resultAnalysis = "";
                 string suffixData;
@@ -198,21 +197,24 @@ namespace MorfologAnalysis
                             //Являтеся ли буква последней для неизменяемой части слова
                             if (let.final) 
                             {
-
-                                    //Если ещё остались буквы в слове, проверяем привязанные окончания
-                                    suffixData = let.getSuffixData(_searchWord.Substring(i + 1), _searchWord.Substring(0, i + 1));
-                                    if (suffixData != "")
+                                suffixData = let.getSuffixData(_searchWord.Substring(i + 1), _searchWord.Substring(0, i + 1));
+                                if (suffixData != "")
+                                {
+                                    if (_changeFrom)
                                     {
-                                        
-                                        return resultAnalysis = let.morfologData + ' ' + suffixData;
+                                        string sklonenie = Regex.Match(this.suffixTable[let.IdSuffix].ToString(), @"(\w+|)," + _morfologInput).Value;
+                                        return _searchWord.Substring(0, i + 1) + sklonenie.Split(',')[0];
                                     }
-  
-                                    //Если букв не осталось и слово не имеет неизменяемой части, 
-                                    //то возвращаем морфологическое описание из первого документа
-                                    if (let.IdSuffix == -1 && _searchWord.Substring(i + 1) == "")
-                                    {
-                                        return let.morfologData;
-                                    }
+                                    
+                                    return resultAnalysis = let.morfologData + ' ' + suffixData;
+                                }
+                                //Если букв не осталось и слово не имеет неизменяемой части, 
+                                //то возвращаем морфологическое описание из первого документа
+                                if (let.IdSuffix == -1 && _searchWord.Substring(i + 1) == "")
+                                {
+                                    if (_changeFrom) return "";
+                                    return let.morfologData;
+                                }
                             }
                         }
                     }
@@ -224,6 +226,11 @@ namespace MorfologAnalysis
                             onlySufMorfolog = os.getSuffixData(_searchWord); 
                             if (onlySufMorfolog != "") 
                             {
+                                if (_changeFrom)
+                                {
+                                    string sklonenie = Regex.Match(this.suffixTable[os.IdSuffix].ToString(), @"(\w+|)," + _morfologInput).Value;
+                                    return sklonenie.Split(',')[0]; 
+                                }
                                 return resultAnalysis = os.morfologData + ' ' + onlySufMorfolog;
                             }
                         }
@@ -233,7 +240,6 @@ namespace MorfologAnalysis
                     }
                 }
                 return resultAnalysis;
-
             }
             #endregion
 
@@ -246,7 +252,7 @@ namespace MorfologAnalysis
                 //Поочерёдно для каждого слова выполняем морфологический анализ
                 foreach (Match wordInput in allWords)
                 {
-                    strResult = findWord(wordInput.Value);
+                    strResult = findWord(wordInput.Value, false);
                     if (strResult != "")
                     {
                         Console.WriteLine(wordInput + " - " + strResult );
@@ -264,10 +270,32 @@ namespace MorfologAnalysis
         static void Main(string[] args)
         {
             WordAnalysis wa = new WordAnalysis();
-            string text = Console.ReadLine();
-            wa.stringAnalysis(text);
+            Console.Write("Выберите действие:\n1 - Морфологический анализ предложения\n2 - Морфологический анализ слова\nУкажите номер действия:");
+            string inputText;
+           
+            
+            string actionType = Console.ReadLine();
+            Console.Clear();
+            
+            switch (actionType) 
+            {
+                case "1" :
+                    Console.WriteLine("Морфологический анализ предложения\nВведите предложение:");
+                    inputText = Console.ReadLine();
+                    wa.stringAnalysis(inputText);
+                    break;
+                case "2" :
+                    Console.WriteLine("Морфологический анализ слова\nВведите слово:");
+                    inputText = Console.ReadLine();
+                    Console.WriteLine("Введите желаемые морфологические характеристики:");
+                    string morgfologChars = Console.ReadLine();
+                    string strResult = wa.findWord(inputText.ToLower(), true, morgfologChars);
+                    Console.WriteLine("Результат: " + strResult != "" ? strResult : "Слово не найдено");
+                    break;
+                default: Console.WriteLine("Ошибка ввода"); break;
+            }
 
-            Console.ReadLine();
+            Console.ReadKey();
         }
     }
 }
