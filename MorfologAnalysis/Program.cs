@@ -155,7 +155,7 @@ namespace MorfologAnalysis
             #region Добавление слова
             //Добавление слова в словарь
             //Переменная _word это неизменяемая часть слова
-            public void addWord(string _word, string _morfologData, int IdSuffix = -1) 
+            private void addWord(string _word, string _morfologData, int IdSuffix = -1) 
             { 
                 if (_word.Length == 0)
                 {
@@ -181,7 +181,7 @@ namespace MorfologAnalysis
 
             #region Поиск слова
             //Поиск в словаре по входной строке
-            public string findWord(string _searchWord, bool _changeFrom, string _morfologInput = "")
+            private string findWord(string _searchWord, bool _changeFrom, string _morfologInput = "")
             {
                 string resultAnalysis = "";
                 string suffixData;
@@ -245,23 +245,37 @@ namespace MorfologAnalysis
 
             #region Вывод результата
             //Вывод на экран результата морфологического анализа введённой строки
-            public void stringAnalysis(string _inputStr) 
+            public string stringAnalysis(string _inputStr, bool _changeForm, string _morfologInput = "") 
             {
-                string strResult;
-                MatchCollection allWords = Regex.Matches(_inputStr.ToLower(), "[а-яА-Я]+");
-                //Поочерёдно для каждого слова выполняем морфологический анализ
-                foreach (Match wordInput in allWords)
+                string strResult = "";
+                if (_changeForm)
                 {
-                    strResult = findWord(wordInput.Value, false);
-                    if (strResult != "")
+                    strResult = findWord(_inputStr.ToLower(), true, _morfologInput);
+                    if (strResult == "")
                     {
-                        Console.WriteLine(wordInput + " - " + strResult );
-                    }
-                    else
-                    {
-                        Console.WriteLine(wordInput + " - " + "слово не найдено");
+                        strResult = _inputStr + " - слово не найдено\n";
                     }
                 }
+                else 
+                {
+                    string wordFinded;
+                    MatchCollection allWords = Regex.Matches(_inputStr.ToLower(), "[а-яА-Я]+");
+                    //Поочерёдно для каждого слова выполняем морфологический анализ
+                    foreach (Match wordInput in allWords)
+                    {
+                        wordFinded = findWord(wordInput.Value, false);
+                        if (wordFinded != "")
+                        {
+                            strResult += wordInput + " - " + wordFinded + "\n";
+                            
+                        }
+                        else
+                        {
+                            strResult += wordInput + " - слово не найдено\n";
+                        }
+                    }
+                }
+                return strResult;
             }
             #endregion
         }
@@ -272,8 +286,6 @@ namespace MorfologAnalysis
             WordAnalysis wa = new WordAnalysis();
             Console.Write("Выберите действие:\n1 - Морфологический анализ предложения\n2 - Морфологический анализ слова\nУкажите номер действия:");
             string inputText;
-           
-            
             string actionType = Console.ReadLine();
             Console.Clear();
             
@@ -282,15 +294,14 @@ namespace MorfologAnalysis
                 case "1" :
                     Console.WriteLine("Морфологический анализ предложения\nВведите предложение:");
                     inputText = Console.ReadLine();
-                    wa.stringAnalysis(inputText);
+                    Console.WriteLine(wa.stringAnalysis(inputText, false));
                     break;
                 case "2" :
                     Console.WriteLine("Морфологический анализ слова\nВведите слово:");
                     inputText = Console.ReadLine();
                     Console.WriteLine("Введите желаемые морфологические характеристики:");
                     string morgfologChars = Console.ReadLine();
-                    string strResult = wa.findWord(inputText.ToLower(), true, morgfologChars);
-                    Console.WriteLine("Результат: " + strResult != "" ? strResult : "Слово не найдено");
+                    Console.WriteLine(wa.stringAnalysis(inputText, true, morgfologChars));
                     break;
                 default: Console.WriteLine("Ошибка ввода"); break;
             }
