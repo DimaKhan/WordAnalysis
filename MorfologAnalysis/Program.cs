@@ -115,7 +115,7 @@ namespace MorfologAnalysis
             }
         }
         
-        class WordAnalysis 
+        sealed class WordAnalysis 
         {
             //Список хранимых букв
             List<LetterData> letters = new List<LetterData>();
@@ -123,11 +123,15 @@ namespace MorfologAnalysis
             List<OnlySuffixData> onlySuffix = new List<OnlySuffixData>(); 
             //Хеш таблица окончаний
             Hashtable suffixTable = new Hashtable();
+            //Таблица сокращений в морфологическом словаре
+            Hashtable transcriptTable = new Hashtable();
 
-            public WordAnalysis() 
+            #region Конструтор класса
+            //Загружаем данные из файлов
+            private WordAnalysis() 
             {
                 //Загрузка окончаний в хеш таблицу
-                StreamReader endData = new StreamReader(@"D:\dict\flexia.txt", Encoding.Default);
+                StreamReader endData = new StreamReader(@"flexia.txt", Encoding.Default);
                 string str;
                 while (!endData.EndOfStream)
                 {
@@ -137,7 +141,7 @@ namespace MorfologAnalysis
                 endData.Close();
 
                 //Загрузка неизменяемых частей
-                StreamReader osnovaData = new StreamReader(@"D:\dict\word.txt", Encoding.Default);
+                StreamReader osnovaData = new StreamReader(@"word.txt", Encoding.Default);
                 string[] wordDict;
                 while (!osnovaData.EndOfStream)
                 {
@@ -150,6 +154,16 @@ namespace MorfologAnalysis
                     addWord(wordDict[0].Trim(' '), wordDict[1].Trim(' '));
                 }
                 osnovaData.Close();
+            }
+            #endregion
+
+            //Инициализируем единственный объект класса
+            private static WordAnalysis wordAnalysis = new WordAnalysis();
+
+            //Метод для получениядоступа к экземпляру класса
+            public static WordAnalysis GetInstance() 
+            {
+                return wordAnalysis;
             }
 
             #region Добавление слова
@@ -283,7 +297,9 @@ namespace MorfologAnalysis
 
         static void Main(string[] args)
         {
-            WordAnalysis wa = new WordAnalysis();
+            //Для класса WordAnalysis реализован шаблон Singleton с целью предотвратить повторную загрузку данных из файлов
+            WordAnalysis wa = WordAnalysis.GetInstance();
+          
             Console.Write("Выберите действие:\n1 - Морфологический анализ предложения\n2 - Морфологический анализ слова\nУкажите номер действия:");
             string inputText;
             string actionType = Console.ReadLine();
@@ -305,7 +321,6 @@ namespace MorfologAnalysis
                     break;
                 default: Console.WriteLine("Ошибка ввода"); break;
             }
-
             Console.ReadKey();
         }
     }
