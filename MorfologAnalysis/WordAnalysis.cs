@@ -10,18 +10,24 @@ using System.Threading.Tasks;
 namespace MorfologAnalysis
 {
 
+    /// <summary>
+    /// WordAnalysis - основной класс программы, который
+    /// добавляет слова в словарь
+    /// определяет морфологические характеристики введённых слов
+    /// склоняет слово согласно введённым морфологическим характеристикам
+    /// </summary>
     public sealed class WordAnalysis
     {
-        //Список хранимых букв
+        //Список букв, которые есть в словах указанных в словаре
         List<LetterData> letters = new List<LetterData>();
         //Список окнчаний без неизменяемой части
         List<OnlySuffixData> onlySuffix = new List<OnlySuffixData>();
-        //Хеш таблица окончаний
+        //Хеш таблица неизменяемых частей
         Hashtable suffixTable = new Hashtable();
 
 
         #region Конструтор класса
-        //Загружаем данные из файлов
+        //В конструкторе загружаем данные из файлов
         private WordAnalysis()
         {
             //Загрузка окончаний в хеш таблицу
@@ -61,13 +67,17 @@ namespace MorfologAnalysis
         }
 
         #region Добавление слова
-        //Добавление слова в словарь
-        //Переменная _word это неизменяемая часть слова
+        /// <summary>
+        /// Функция предназанчена для добавления слова в словарь, который находится в оперативной памяти
+        /// </summary>
+        /// <param name="_word">Неизменяемая часть слова</param>
+        /// <param name="_morfologData">Морфологические описания из файла words.txt</param>
+        /// <param name="IdSuffix">id неизменямой части слова из файла flexia.txt, если нет неизменямой части, то значение -1</param>
         private void addWord(string _word, string _morfologData, int IdSuffix = -1)
         {
             if (_word.Length == 0)
             {
-                this.onlySuffix.Add(new OnlySuffixData(this.suffixTable, IdSuffix, _morfologData));
+                this.onlySuffix.Add(new OnlySuffixData(_morfologData,  this.suffixTable, IdSuffix));
             }
             else
             {
@@ -76,7 +86,7 @@ namespace MorfologAnalysis
                     if (i == _word.Length - 1)
                     {
                         //Если буква неизменямой части последняя, тогда берём описание из первого словаря
-                        this.letters.Add(new LetterData(_word[i], i, true, _word, this.suffixTable, IdSuffix, _morfologData));
+                        this.letters.Add(new LetterData(_word[i], i, _morfologData, true, _word, this.suffixTable, IdSuffix));
                     }
                     else
                     {
@@ -89,6 +99,16 @@ namespace MorfologAnalysis
 
         #region Поиск слова
         //Поиск в словаре по входной строке
+        /// <summary>
+        /// Осуществляет поиск слова по заданным параметрам
+        /// </summary>
+        /// <param name="_searchWord">Введённое пользователем слово</param>
+        /// <param name="_changeFrom">Атрибут указывает на режим работы
+        /// true - склоняет слово
+        /// false - находит морфологические признаки по каждому слову</param>
+        /// <param name="_morfologInput">Желаемые морфлогические характеристики для склоняемого слова</param>
+        /// <returns>Возвращает либо строку с морфологическими характеристиками, 
+        /// либо слово с заданными характеристиками</returns>
         private string findWord(string _searchWord, bool _changeFrom, string _morfologInput = "")
         {
             string resultAnalysis = "";
@@ -169,7 +189,16 @@ namespace MorfologAnalysis
         #endregion
 
         #region Вывод результата
-        //Вывод на экран результата морфологического анализа введённой строки
+        /// <summary>
+        /// Принмиает входные данные по режиму работы программы и выводит результаты работы
+        /// </summary>
+        /// <param name="_inputStr">Входная строка для обработки</param>
+        /// <param name="_changeForm">Выбрать сценраий работы программы
+        /// true - изменить слово по заданным морфологическим признакам
+        /// false - получить морфлогические данные по каждому введённому слову</param>
+        /// <param name="_morfologInput">Желаемые морфологические характиристики для склоняемого слова</param>
+        /// <returns>Возвращает строку с морфологическими характеристиками по каждому слову или изменённое слово 
+        /// согласно морфологичесикм харатеристикам</returns>
         public string stringAnalysis(string _inputStr, bool _changeForm, string _morfologInput = "")
         {
             string strResult = "";
@@ -204,12 +233,24 @@ namespace MorfologAnalysis
         }
         #endregion
     }
+
+    /// <summary>
+    /// Класс для хранения изменяемой части слова
+    /// </summary>
     class Suffix
     {
         //Неизменяемая часть слова
         public string osnova;
         //Таблица окончаний
         public Hashtable suffix = new Hashtable();
+
+        #region Конструктор класса Suffix
+        /// <summary>
+        /// Конструктор класса создаёт объект содержащий основу слова и соответствующие ей 
+        /// возможные варианты неизменяемой части слова с морфологическими характеристиками
+        /// </summary>
+        /// <param name="_osnova">Неизменяемая часть слова</param>
+        /// <param name="_suffix">Строка содержащая все варианты окончаний для данного слова</param>
         public Suffix(string _osnova, string _suffix)
         {
             osnova = _osnova;
@@ -233,20 +274,30 @@ namespace MorfologAnalysis
 
             }
         }
+        #endregion
     }
 
+    //Авбстрактный класс содержащий общую информацию для хранимых символов
     abstract class CharData
-    {   //Морфологический анализ неизменяемой части слова
+    {   //Морфологические данные неизменяемой части слова
         public string morfologData;
-        //id окончания из второго файла
+        //id неизменяемой части из файла flexia
         public int IdSuffix;
         public List<Suffix> suffixes = new List<Suffix>();
         public abstract string getSuffixData(string _endWord, string _osnova = "");
     }
 
+    //Класс содержащий данные о словах у которых нет неизменяемой части
     class OnlySuffixData : CharData
     {
-        public OnlySuffixData(Hashtable _suffixTable = null, int _IdSuffix = -1, string _morfologData = "")
+        /// <summary>
+        /// Конструктор класса создаёт объект в котором хранится описание из файла words и соответствующей части
+        /// из файла flexia
+        /// </summary>
+        /// <param name="_morfologData">морфологические признаки из файла words.txt</param>
+        /// <param name="_suffixTable">Хеш-таблица с данными по неизменяемой части</param>
+        /// <param name="_IdSuffix">id необходмой нам изменяемой части</param>
+        public OnlySuffixData(string _morfologData,  Hashtable _suffixTable, int _IdSuffix = -1)
         {
             morfologData = _morfologData;
             IdSuffix = _IdSuffix;
@@ -255,7 +306,7 @@ namespace MorfologAnalysis
                 suffixes.Add(new Suffix("", _suffixTable[_IdSuffix].ToString()));
             }
         }
-        //Получить морфологический анализ для всего слова
+        //Получить морфологический анализ для слова без неизменяемой части
         public override string getSuffixData(string _endWord, string _osnova = "")
         {
             var resSuffix = this.suffixes.SingleOrDefault(suf => suf.suffix.ContainsKey(_endWord));
@@ -270,7 +321,7 @@ namespace MorfologAnalysis
         }
     }
 
-    //Данные о букве добавляемых слов
+    //Данные о буквах в словах неизменяемой части
     class LetterData : CharData
     {
         //Является ли буква конечной для какого либо из добавленных слов
@@ -279,8 +330,17 @@ namespace MorfologAnalysis
         public int position;
         //Буква слова
         public char letter;
-
-        public LetterData(char _letter, int _position, bool _final = false, string _osnova = "", Hashtable _suffixTable = null, int _IdSuffix = -1, string _morfologData = "")
+        /// <summary>
+        /// Конструктор создаёт объект содержащий данные по букве
+        /// </summary>
+        /// <param name="_letter">Буква</param>
+        /// <param name="_position">Позиция буквы в слове</param>
+        /// <param name="_morfologData">Морфологические признаки неизменяемой части слова</param>
+        /// <param name="_final">Является ли буква последней в неизменяемой части</param>
+        /// <param name="_osnova">Неизменяемая часть слова</param>
+        /// <param name="_suffixTable">Таблица окончаний</param>
+        /// <param name="_IdSuffix">id изменяемой части слова</param>
+        public LetterData(char _letter, int _position, string _morfologData = "", bool _final = false, string _osnova = "", Hashtable _suffixTable = null, int _IdSuffix = -1)
         {
 
             letter = _letter;
